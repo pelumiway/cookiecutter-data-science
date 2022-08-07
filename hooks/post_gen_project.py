@@ -1,3 +1,7 @@
+from pathlib import Path
+import shutil
+
+
 # https://github.com/cookiecutter/cookiecutter/issues/824
 #   our workaround is to include these utility functions in the CCDS package
 from ccds.hook_utils.custom_config import write_custom_config
@@ -50,3 +54,13 @@ write_dependencies(
 )
 
 write_custom_config("{{ cookiecutter.custom_config }}")
+
+
+# {% if cookiecutter.include_skeleton_code == "No" %}
+# remove everything except __init__.py so result is an empty package
+for generated_path in Path("{{ cookiecutter.module_name }}").iterdir():
+    if generated_path.is_dir():
+        shutil.rmtree(generated_path)
+    elif generated_path.name != "__init__.py":
+        generated_path.unlink()
+# {% endif %}
