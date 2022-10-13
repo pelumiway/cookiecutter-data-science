@@ -8,12 +8,13 @@ requirements:
 	pip install -U -r dev-requirements.txt
 
 format:
-	isort ccds hooks tests
-	black ccds hooks tests setup.py
+	isort ccds hooks tests "{{ cookiecutter.repo_name }}/{{ cookiecutter.module_name }}"
+	black ccds hooks tests setup.py "{{ cookiecutter.repo_name }}/{{ cookiecutter.module_name }}"
 	
 lint:
-	flake8 ccds hooks tests setup.py
-	black --check ccds hooks tests setup.py
+	flake8 ccds hooks tests setup.py "{{ cookiecutter.repo_name }}/{{ cookiecutter.module_name }}"
+	isort --check ccds hooks tests "{{ cookiecutter.repo_name }}/{{ cookiecutter.module_name }}"
+	black --check ccds hooks tests setup.py "{{ cookiecutter.repo_name }}/{{ cookiecutter.module_name }}"
 
 
 ###     DOCS

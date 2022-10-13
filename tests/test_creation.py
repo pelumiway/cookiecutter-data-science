@@ -47,8 +47,8 @@ def verify_folders(root, config):
         "reports/figures",
         config["module_name"],
     ]
-    
-    if config["include_skeleton_code"] == "Yes":
+
+    if config["include_code_scaffold"] == "Yes":
         expected_dirs += [
             f"{config['module_name']}/data",
             f"{config['module_name']}/features",
@@ -101,7 +101,7 @@ def verify_files(root, config):
     if not config["open_source_license"].startswith("No license"):
         expected_files.append("LICENSE")
 
-    if config["include_skeleton_code"] == "Yes":
+    if config["include_code_scaffold"] == "Yes":
         expected_files += [
             f"{config['module_name']}/data/__init__.py",
             f"{config['module_name']}/data/make_dataset.py",

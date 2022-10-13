@@ -1,10 +1,9 @@
-.PHONY: clean data lint format requirements sync_data_down sync_data_up
+.PHONY: clean data lint format requirements sync_data_down sync_data_up help
 
 #################################################################################
 # GLOBALS                                                                       #
 #################################################################################
 
-PROJECT_DIR := $(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))
 PROJECT_NAME = {{ cookiecutter.repo_name }}
 PYTHON_VERSION = {{ cookiecutter.python_version_number }}
 PYTHON_INTERPRETER = python
@@ -15,8 +14,7 @@ PYTHON_INTERPRETER = python
 #################################################################################
 
 {% if cookiecutter.dependency_file != 'none' %}
-## Install Python Dependencies
-requirements:
+requirements:  ## Install Python Dependencies
 	{% if "requirements.txt" == cookiecutter.dependency_file -%}
 	$(PYTHON_INTERPRETER) -m pip install -U pip setuptools wheel
 	$(PYTHON_INTERPRETER) -m pip install -r requirements.txt
@@ -27,25 +25,21 @@ requirements:
 	{% endif %}
 {% endif %}
 
-
-## Delete all compiled Python files
-clean:
+clean:  ## Delete all compiled Python files
 	find . -type f -name "*.py[co]" -delete
 	find . -type d -name "__pycache__" -delete
 
-## Lint using flake8 and black (use `make format` to do formatting)
-lint:
+lint:  ## Lint using flake8 and black (use `make format` to do formatting)
 	flake8 {{ cookiecutter.module_name }}
 	black --check --config pyproject.toml {{ cookiecutter.module_name }}
+	isort --check {{ cookiecutter.module_name }}
 
-
-## Format source code with black
-format:
+format:  ## Format source code with black and isort
+	isort {{ cookiecutter.module_name }}
 	black --config pyproject.toml {{ cookiecutter.module_name }}
 
 {% if not cookiecutter.dataset_storage.none %}
-## Download Data from storage system
-sync_data_down:
+sync_data_down:  ## Download data from storage system
 	{% if cookiecutter.dataset_storage.s3 -%}
 	aws s3 sync s3://{{ cookiecutter.dataset_storage.s3.bucket }}/data/\
 		data/ {% if cookiecutter.dataset_storage.s3.aws_profile != 'default' %} --profile {{ cookiecutter.dataset_storage.s3.aws_profile }}{% endif %}
@@ -56,8 +50,7 @@ sync_data_down:
 	gsutil rsync gs://{{ cookiecutter.dataset_storage.gcs.bucket }}/data/ data/
 	{% endif %}
 
-## Upload Data to storage system
-sync_data_up:
+sync_data_up:  ## Upload data to storage system
 	{% if cookiecutter.dataset_storage.s3 -%}
 	aws s3 sync s3://{{ cookiecutter.dataset_storage.s3.bucket }}/data/ data/\
 		{% if cookiecutter.dataset_storage.s3.aws_profile %} --profile $(PROFILE){% endif %}
@@ -70,8 +63,7 @@ sync_data_up:
 {% endif %}
 
 {% if cookiecutter.environment_manager != 'none' %}
-## Set up python interpreter environment
-create_environment:
+create_environment:  ## Set up python interpreter environment
 	{% if cookiecutter.environment_manager == 'conda' -%}
 	{% if cookiecutter.dependency_file != 'environment.yml' %}
 	conda create --name $(PROJECT_NAME) python=$(PYTHON_VERSION) -y
@@ -93,9 +85,11 @@ create_environment:
 # PROJECT RULES                                                                 #
 #################################################################################
 
-## Make Dataset
-data: requirements
-	$(PYTHON_INTERPRETER) {{ cookiecutter.module_name }}/data/make_dataset.py
+{% if cookiecutter.include_code_scaffold != 'Yes' %}
+data: requirements  ## Create data/processed from data/raw
+	$(PYTHON_INTERPRETER) {{ cookiecutter.module_name }}/data/process.py
+{% endif %}
+
 
 #################################################################################
 # Self Documenting Commands                                                     #
@@ -103,57 +97,16 @@ data: requirements
 
 .DEFAULT_GOAL := help
 
-# Inspired by <http://marmelab.com/blog/2016/02/29/auto-documented-makefile.html>
-# sed script explained:
-# /^##/:
-# 	* save line in hold space
-# 	* purge line
-# 	* Loop:
-# 		* append newline + line to hold space
-# 		* go to next line
-# 		* if line starts with doc comment, strip comment character off and loop
-# 	* remove target prerequisites
-# 	* append hold space (+ newline) to line
-# 	* replace newline plus comments by `---`
-# 	* print line
-# Separate expressions are necessary because labels cannot be delimited by
-# semicolon; see <http://stackoverflow.com/a/11799865/1968>
-.PHONY: help
+define PRINT_HELP_PYSCRIPT
+import re, sys
+
+for line in sys.stdin:
+	match = re.match(r'^([a-zA-Z_-]+):.*?## (.*)$$', line)
+	if match:
+		target, help = match.groups()
+		print("%-20s %s" % (target, help))
+endef
+export PRINT_HELP_PYSCRIPT
+
 help:
-	@echo "$$(tput bold)Available rules:$$(tput sgr0)"
-	@echo
-	@sed -n -e "/^## / { \
-		h; \
-		s/.*//; \
-		:doc" \
-		-e "H; \
-		n; \
-		s/^## //; \
-		t doc" \
-		-e "s/:.*//; \
-		G; \
-		s/\\n## /---/; \
-		s/\\n/ /g; \
-		p; \
-	}" ${MAKEFILE_LIST} \
-	| LC_ALL='C' sort --ignore-case \
-	| awk -F '---' \
-		-v ncol=$$(tput cols) \
-		-v indent=19 \
-		-v col_on="$$(tput setaf 6)" \
-		-v col_off="$$(tput sgr0)" \
-	'{ \
-		printf "%s%*s%s ", col_on, -indent, $$1, col_off; \
-		n = split($$2, words, " "); \
-		line_length = ncol - indent; \
-		for (i = 1; i <= n; i++) { \
-			line_length -= length(words[i]) + 1; \
-			if (line_length <= 0) { \
-				line_length = ncol - indent - length(words[i]) - 1; \
-				printf "\n%*s ", -indent, " "; \
-			} \
-			printf "%s ", words[i]; \
-		} \
-		printf "\n"; \
-	}' \
-	| more $(shell test $(shell uname) = Darwin && echo '--no-init --raw-control-chars')
+	@python -c "$$PRINT_HELP_PYSCRIPT" < $(MAKEFILE_LIST)
