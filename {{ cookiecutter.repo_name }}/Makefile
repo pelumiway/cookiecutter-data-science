@@ -32,10 +32,10 @@ clean:  ## Delete all compiled Python files
 lint:  ## Lint using flake8 and black (use `make format` to do formatting)
 	flake8 {{ cookiecutter.module_name }}
 	black --check --config pyproject.toml {{ cookiecutter.module_name }}
-	isort --check {{ cookiecutter.module_name }}
+	isort --check --profile black {{ cookiecutter.module_name }}
 
 format:  ## Format source code with black and isort
-	isort {{ cookiecutter.module_name }}
+	isort --profile black {{ cookiecutter.module_name }}
 	black --config pyproject.toml {{ cookiecutter.module_name }}
 
 {% if not cookiecutter.dataset_storage.none %}
