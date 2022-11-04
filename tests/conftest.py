@@ -45,6 +45,7 @@ def config_generator(fast=False):
             ("include_code_scaffold", opt)
             for opt in cookiecutter_json["include_code_scaffold"]
         ],
+        [("docs", opt) for opt in cookiecutter_json["docs"]],
     )
 
     def _is_valid(config):
